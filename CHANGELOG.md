@@ -1,3 +1,4 @@
-# 2017-05-30 Version 1.0.0
+# 2017-05-30 Version 1.0.0-alpha
 
-- Initial version
+- Initial pre-release version.
+- Well commented in source, but lacking proper documentation.
