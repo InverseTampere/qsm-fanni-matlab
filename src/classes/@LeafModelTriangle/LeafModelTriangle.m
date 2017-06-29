@@ -438,7 +438,169 @@ classdef LeafModelTriangle < LeafModel
 
         end
 
+        function export_obj(ob, file, d, OriginOffset, Filter)
+        % Export leaves in Wavefront OBJ-format.
+            
+            % Set default precision.
+            if nargin < 3
+                d = 4;
+            end
 
+            % Flag for overriding the origin by moving the starting points.
+            fOriginOverride = false;
+            
+            if nargin > 3 && not(isempty(OriginOffset))
+                fOriginOverride = true;
+            end
+            
+            % Number of leaves in model.
+            NLeaf = ob.leaf_count;
+
+            % Logical vector for filtering only some of the leaves for
+            % export.
+            if nargin <= 4
+                Filter = true(NLeaf,1);
+            end
+
+            % Flag: leaves consist of ngons.
+            fNgon = true;
+
+            if isempty(ob.base_ngons)
+                fNgon = false;
+            end
+
+            % Number of vertices in base.
+            NBaseVert = size(ob.base_vertices,1);
+
+            % Matrix of vertices, row == vertex.
+            Vertices = zeros(nnz(Filter)*NBaseVert,3);
+
+            % Number of exported leaves.
+            jLeaf = 0;
+
+            % Iterate over leaves in model.
+            for iLeaf = 1:NLeaf
+
+                % Check if filtered in.
+                if Filter(iLeaf)
+                    % Increase number of exported leaves.
+                    jLeaf = jLeaf + 1;
+                else
+                    % Ignore filtered leaf.
+                    continue;
+                end
+
+                % Get single leaf parameters and convert to vertices.
+                origin = ob.leaf_start_point(iLeaf,:);
+                scale  = ob.leaf_scale(iLeaf,:);
+                dir    = ob.leaf_direction(iLeaf,:);
+                normal = ob.leaf_normal(iLeaf,:);
+
+                % Compute vertices by transforming leaf base.
+                vert  = ob.base_vertices;
+
+                % Scaling.
+                vert = bsxfun(@times,vert,scale);
+
+                % Coordinate system.
+                E = [cross(normal,dir); dir; normal];
+
+                % Rotation.
+                vert = vert*E;
+
+                % Translation.
+                vert = bsxfun(@plus,vert,origin);
+
+                % Store resulting vertices.
+                Vertices((jLeaf-1)*NBaseVert+1:jLeaf*NBaseVert,:) = vert;
+
+            end
+
+            % Number of included leaves.
+            NLeaf = jLeaf;
+
+            % Using ngons
+            if fNgon
+
+                % Flag: equal-sized faces.
+                fEqualNgons = true;
+
+                % Vertical catenation only works if faces have equal number
+                % of vertices.
+                try
+                    BaseNgons = vertcat(ob.base_ngons{:});
+                catch
+                    fEqualNgons = false;
+                end
+
+                % All ngons have equal number of vertices.
+                if fEqualNgons
+
+                    % Number of triangles in base.
+                    NNgon = size(BaseNgons,1);
+
+                    % Indices of base triangle face vertices.
+                    ngons = repmat(BaseNgons,NLeaf,1);
+
+                    add = repmat(0:1:NLeaf-1,NNgon,1);
+                    add = add(:)*NBaseVert;
+
+                    Faces = bsxfun(@plus,ngons,add);
+
+                % Ngon vertex count varies.
+                else
+
+                    % Base ngons as cell array.
+                    BaseNgons = ob.base_ngons;
+
+                    % Number of ngons in base.
+                    NNgon = numel(BaseNgons);
+
+                    % Cell to store faces.
+                    Faces = cell(NLeaf*NNgon,1);
+
+                    for iLeaf = 1:NLeaf
+
+                        for iNgon = 1:NNgon
+
+                            % Offset index by previus leaf count,
+                            % and store to cell array.
+                            Faces{(iLeaf-1)*NNgon+iNgon} = BaseNgons{iNgon} ...
+                                                         + (iLeaf-1)*NNgon;
+                            %-
+
+                        end
+
+                    end
+
+                end
+
+            else
+
+                % Number of triangles in base.
+                NTri = size(Leaves.base_triangles,1);
+
+                % Indices of base triangle face vertices.
+                tris = repmat(Leaves.base_triangles,NLeaf,1);
+
+                % Offset vector to account for previous leaves.
+                add = repmat(0:1:NLeaf-1,NTri,1);
+                add = add(:)*NBaseVert;
+
+                % Store offset face indices to matrix.
+                Faces = bsxfun(@plus,tris,add);
+
+            end
+
+            % Override origin if given.
+            if fOriginOverride
+                Vertices = bsxfun(@minus,Vertices,OriginOffset);
+            end
+
+            % Write resulting vertices and faces to file.
+            LeafModelTriangle.export_vert_face_obj(Vertices,Faces,d,file);
+            
+        end
 
     end
 
@@ -496,6 +658,104 @@ classdef LeafModelTriangle < LeafModel
             % discarded as equal operators are not included.
             fIntersect = Dist > 0 && Dist < DistLim;
             
+        end
+        
+        function export_vert_face_obj(Vertices,Faces,d,file)
+        % Export vertices and faces in Wavefront OBJ-format.
+            
+            % Set precision formatter.
+            if length(d) > 1
+                ft = ['%' num2str(d(2)) '.' num2str(d(1)) 'f'];
+            else
+                ft = ['%.' num2str(d(1)) 'f'];
+            end
+
+            % Flag to close file and the end.
+            closefile = false;
+
+            % Check if filename and not file stream.
+            if ischar(file)
+
+                % Open file stream with filename.
+                fid = fopen(file,'w');
+                % Set file to close at the end.
+                closefile = true;
+
+            else
+                % Otherwise a file stream is given as input.
+                fid = file;
+            end
+
+            % Number of vertices.
+            NVertex = size(Vertices,1);
+
+            % Print format.
+            ft = ['v ' ft ' ' ft ' ' ft '\n'];
+
+            % Print vertices.
+            for iVertex = 1:NVertex
+
+                % Print vertex to file.
+                fprintf(fid,ft,Vertices(iVertex,:));
+
+            end
+
+            % Number of faces.
+            NFace = size(Faces,1);
+
+            % Faces can have constant number of vertices or the number can
+            % vary. Constant count implies a matrix, varying count needs a
+            % cell array.
+            fCellFaces = false;
+
+            if iscell(Faces)
+                fCellFaces = true;
+            end
+
+            % Number of vertices in face.
+            NFaceVertex = size(Faces,2);
+
+            % Face vertex print format.
+            ft = repmat('%d ', 1, NFaceVertex);
+            % Remove trailing space.
+            ft = ft(1:end);
+
+            % Print faces.
+            for iFace = 1:NFace
+
+                if fCellFaces
+
+                    % Vertices of face.
+                    Face = Faces{iFace};
+
+                    % Vertices in face
+                    NFaceVertex = length(Face);
+
+                    % Number of vertices affects print format.
+                    ft = repmat('%d ', 1, NFaceVertex);
+                    ft = ft(1:end);
+
+                else
+                    % Vertices of face.
+                    Face = Faces(iFace,:);
+                end
+
+                % Print face vertex indices to file.
+                fprintf(fid,['f ' ft '\n'],Face);
+
+            end
+
+            % If the file stream was opened in this function, 
+            % close the stream.
+            if closefile
+                fclose(fid);
+            end
+
+            % Display the number of vertices and faces printed to the file.
+            disp(['Exported '      num2str(NVertex) ...
+                  ' vertices and ' num2str(NFace) ' faces.']);
+            %-
+
         end
         
     end

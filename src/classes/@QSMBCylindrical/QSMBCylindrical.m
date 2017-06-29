@@ -14,7 +14,8 @@
 % along with QSM-FaNNI.  If not, see <http://www.gnu.org/licenses/>.
 
 classdef QSMBCylindrical < QSMB
-% QSMBCylindrical
+% Container for cylindrical quantitative structure model block information.
+% A subclass of the abstract class QSMB.
 
     properties
 
@@ -542,6 +543,70 @@ classdef QSMBCylindrical < QSMB
                 BlockVoxelization.add_object_by_cc(cc,iCyl);
 
             end
+
+        end
+        
+        function export_blender(ob, file, d, origin, varargin)
+        % Print cylinder model parameters to file, e.g., for exporting 
+        % to Blender, using the Blender QSM import addon.
+
+            % Flag if extra parameters are given to print to the file.
+            extracols = false;
+
+            if nargin > 4
+                extracols = true;
+                % Number of extra columns.
+                NCol = numel(varargin);
+            end
+
+            % Set origin override as zeros, if not given.
+            if nargin < 4 || isempty(origin)
+                origin = zeros(1,3);
+            end
+
+            % Set precision formatter.
+            if length(d) > 1
+                ft = [' %' num2str(d(2)) '.' num2str(d(1)) 'f'];
+            else
+                ft = [' %.' num2str(d(1)) 'f'];
+            end
+
+            % Number of cylinders.
+            NCyl = ob.block_count;
+
+            % Open file stream.
+            fid = fopen(file,'w');
+
+            for iCyl = 1:NCyl
+
+                % Print to file:
+                % - Branch ID
+                % - Starting point
+                % - Axis direction
+                % - Length
+                % - Radius
+                fprintf(fid,['%d' repmat(ft,1,8)], ...
+                        ob.cylinder_branch_index(iCyl), ...
+                        ob.cylinder_start_point(iCyl,:) - origin, ...
+                        ob.cylinder_axis(iCyl,:), ...
+                        ob.cylinder_length(iCyl), ...
+                        ob.cylinder_radius(iCyl));
+                %-
+
+                % Print extra columns if present.
+                if extracols
+
+                    for iCol = 1:NCol
+                        fprintf(fid,ft,varargin{iCol}(iCyl,:));
+                    end
+                end
+
+                % Print line end.
+                fprintf(fid,'\n');
+            end
+
+            % Close stream.
+            fclose(fid);
 
         end
         

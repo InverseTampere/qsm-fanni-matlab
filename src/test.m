@@ -17,7 +17,7 @@ CylData = [
 0.100 1.000 -1.000  0.000  2.000 -1.000  0.000  0.000    8    0  4  1   2   0;
 ];
 
-CylData(:,3:5) = bsxfun(@plus,CylData(:,3:5),[5 4 -10]);
+%CylData(:,3:5) = bsxfun(@plus,CylData(:,3:5),[5 4 -10]);
 
 BranchData = [
 % BOrd   BPar   BVol   BLen   BAng   BHei
@@ -77,5 +77,5 @@ LeafArea = 10;
 
 %% Export result.
 
-LeafModel2obj(Leaves,4,'test_leaves_export.obj');    
-qsm2file(ModelData{1},4,'test_qsm_export.txt');
+Leaves.export_obj('test_leaves_export.obj',4);    
+QSMsimple.export_blender('test_qsm_export.txt',4);
