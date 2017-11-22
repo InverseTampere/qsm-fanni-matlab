@@ -67,16 +67,75 @@ classdef QSMBCylindrical < QSMB
         function ob = QSMBCylindrical(ModelData)
         % Constructor of class object.
 
-            % Set number of blocks.
-            ob.block_count = size(ModelData{1},1);
+            % Old cell-based model format.
+            if iscell(ModelData)
 
-            % Set cylinder-level properties.
-            ob.cylinder_start_point = ModelData{1}(:,3:5);
-            ob.cylinder_axis        = ModelData{1}(:,6:8);
-            ob.cylinder_length      = ModelData{1}(:,2);
-            ob.cylinder_radius      = ModelData{1}(:,1);
-            ob.cylinder_parent      = ModelData{1}(:,9);
-            ob.cylinder_extension   = ModelData{1}(:,10);
+                % Set number of blocks.
+                ob.block_count = size(ModelData{1},1);
+
+                % Set cylinder-level properties.
+                ob.cylinder_start_point = ModelData{1}(:,3:5);
+                ob.cylinder_axis        = ModelData{1}(:,6:8);
+                ob.cylinder_length      = ModelData{1}(:,2);
+                ob.cylinder_radius      = ModelData{1}(:,1);
+                ob.cylinder_parent      = ModelData{1}(:,9);
+                ob.cylinder_extension   = ModelData{1}(:,10);
+
+                ob.cylinder_branch_index    = ModelData{1}(:,11);
+                ob.cylinder_branch_order    = ModelData{1}(:,12);
+                ob.cylinder_index_in_branch = ModelData{1}(:,13);
+
+                % Set number of branches.
+                ob.branch_count = size(ModelData{2},1);
+
+                % Set branch-level properties.
+                ob.branch_order  = ModelData{2}(:,1);
+                ob.branch_parent = ModelData{2}(:,2);
+                ob.branch_volume = ModelData{2}(:,3);
+                ob.branch_length = ModelData{2}(:,4);
+                ob.branch_angle  = ModelData{2}(:,5);
+
+                % Set height of the branches if included in the input.
+                fManualHeight = true;
+                if size(ModelData{2},2) > 5
+                    ob.branch_height = ModelData{2}(:,6);
+                    fManualHeight = false;
+                else
+                    % Otherwise initialize as zeros and compute later.
+                    ob.branch_height = zeros(ob.branch_count,1);
+                end
+
+            % New struct-based model format.
+            else
+
+                % Set number of blocks.
+                ob.block_count = length(ModelData.cylinder.radius);
+
+                % Set cylinder-level properties.
+                ob.cylinder_start_point = ModelData.cylinder.start;
+                ob.cylinder_axis        = ModelData.cylinder.axis;
+                ob.cylinder_length      = ModelData.cylinder.length;
+                ob.cylinder_radius      = ModelData.cylinder.radius;
+                ob.cylinder_parent      = ModelData.cylinder.parent;
+                ob.cylinder_extension   = ModelData.cylinder.extension;
+
+                ob.cylinder_branch_index    = ModelData.cylinder.branch;
+                ob.cylinder_branch_order    = ModelData.cylinder.BranchOrder;
+                ob.cylinder_index_in_branch = ModelData.cylinder.PositionInBranch;
+
+                % Set number of branches.
+                ob.branch_count = ModelData.treedata.NumberBranches;
+
+                % Set branch-level properties.
+                ob.branch_order  = ModelData.branch.order;
+                ob.branch_parent = ModelData.branch.parent;
+                ob.branch_volume = ModelData.branch.volume;
+                ob.branch_length = ModelData.branch.length;
+                ob.branch_angle  = ModelData.branch.angle;
+                ob.branch_height = ModelData.branch.height;
+
+                fManualHeight = false;
+            end
 
             ob.cylinder_end_point = ob.cylinder_start_point ...
                                   + bsxfun(@times,ob.cylinder_axis,...
@@ -87,7 +146,7 @@ classdef QSMBCylindrical < QSMB
                                   + bsxfun(@times,ob.cylinder_axis,...
                                                   ob.cylinder_length/2);
             %-
-            
+
             % Find extreme points, add and substract radius to each
             % cylinder start and end point to be sure.
             Ep_pr = bsxfun(@plus,ob.cylinder_end_point,...
@@ -107,30 +166,6 @@ classdef QSMBCylindrical < QSMB
             ob.tree_limits = [min([Ep_pr; Ep_mr; Sp_pr; Sp_mr],[],1); ...
                               max([Ep_pr; Ep_mr; Sp_pr; Sp_mr],[],1)];
             %-
-
-            ob.cylinder_branch_index    = ModelData{1}(:,11);
-            ob.cylinder_branch_order    = ModelData{1}(:,12);
-            ob.cylinder_index_in_branch = ModelData{1}(:,13);
-
-            % Set number of branches.
-            ob.branch_count = size(ModelData{2},1);
-
-            % Set branch-level properties.
-            ob.branch_order  = ModelData{2}(:,1);
-            ob.branch_parent = ModelData{2}(:,2);
-            ob.branch_volume = ModelData{2}(:,3);
-            ob.branch_length = ModelData{2}(:,4);
-            ob.branch_angle  = ModelData{2}(:,5);
-
-            % Set height of the branches if included in the input.
-            fManualHeight = true;
-            if size(ModelData{2},2) > 5
-                ob.branch_height = ModelData{2}(:,6);
-                fManualHeight = false;
-            else
-                % Otherwise initialize as zeros and compute later.
-                ob.branch_height = zeros(ob.branch_count,1);
-            end
 
 
             % Find the last cylinder in each branch.

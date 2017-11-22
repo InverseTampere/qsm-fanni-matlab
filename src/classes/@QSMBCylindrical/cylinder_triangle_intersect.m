@@ -61,7 +61,7 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
             U = cross(D,e3);
             U = U./norm(U);
 
-            V = cross(U,D);
+            V = cross(D,U);
         end
 
         % Coordinate sysyem matrix.
@@ -105,14 +105,14 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
             disp('Case 3a');
         end
 
-        intersect = polygon_check(Q(:,1:2),r);
+        intersect = polygon_check(Q(:,1:2),r,edgehit);
         return;
     end
     
     % xy-vectors of coordinates.
-    Q0 = Q(1,1:2);
-    Q1 = Q(2,1:2);
-    Q2 = Q(3,1:2);
+    Q1 = Q(1,1:2);
+    Q2 = Q(2,1:2);
+    Q3 = Q(3,1:2);
     
     if z(1) < -h2
         if z(3) > h2
@@ -124,25 +124,23 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
                     disp('Case 4a/4b');
                 end
 
+                % Distance to low point to lower and upper h-planes.
+                dlow = -h2 - z(1);
+                dupp =  h2 - z(1);
                 
-                n0 = -h2 - z(1);
-                n1 =  h2 - z(1);
+                % Distance in z-direction.
+                z21 = z(2) - z(1);
+                z31 = z(3) - z(1);
                 
-                denom0 = 1/(z(2) - z(1));
-                denom1 = 1/(z(3) - z(1));
+                % Interpolate clipping points on line segments.
+                p = [...
+                    Q1 + dlow/z31*(Q3 - Q1); ...
+                	Q1 + dlow/z21*(Q2 - Q1); ...
+                	Q1 + dupp/z21*(Q2 - Q1); ...
+                	Q1 + dupp/z31*(Q3 - Q1); ...
+                ];
                 
-                p = zeros(4,2);
-                
-                t = n0*denom1;
-                p(1,:) = Q0 + t*(Q2 - Q0);
-                t = n0*denom0;
-                p(2,:) = Q0 + t*(Q1 - Q0);
-                t = n1*denom0;
-                p(3,:) = Q0 + t*(Q1 - Q0);
-                t = n1*denom1;
-                p(4,:) = Q0 + t*(Q2 - Q0);
-                
-                intersect = polygon_check(p,r);
+                intersect = polygon_check(p,r,edgehit);
                 
             % One or two points below cylinder bottom and one above the
             % top.
@@ -151,52 +149,49 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
                     disp('Case 4c/4d');
                 end
 
+                % Distance to high point to lower and upper h-planes.
+                dlow = z(3) + h2;
+                dupp = z(3) - h2;
                 
-                n0 = -h2 - z(3);
-                n1 =  h2 - z(3);
+                % Distance in z-direction.
+                z32 = z(3) - z(2);
+                z31 = z(3) - z(1);
                 
-                denom0 = 1/(z(2) - z(3));
-                denom1 = 1/(z(1) - z(3));
+                p = [...
+                    Q3 + dlow/z31*(Q1 - Q3); ...
+                    Q3 + dlow/z32*(Q2 - Q3); ...
+                    Q3 + dupp/z32*(Q2 - Q3); ...
+                    Q3 + dupp/z31*(Q1 - Q3); ...
+                ];
                 
-                p = zeros(4,2);
-                
-                t = n0*denom1;
-                p(1,:) = Q2 + t*(Q0 - Q2);
-                t = n0*denom0;
-                p(2,:) = Q2 + t*(Q1 - Q2);
-                t = n1*denom0;
-                p(3,:) = Q2 + t*(Q1 - Q2);
-                t = n1*denom1;
-                p(4,:) = Q2 + t*(Q0 - Q2);
-                
-                intersect = polygon_check(p,r);
+                intersect = polygon_check(p,r,edgehit);
                 
             % One point above, one below, one between.
             else
                 if debug
                     disp('Case 5');
                 end
-
                 
-                n0 = -h2 - z(1);
-                n1 =  h2 - z(1);
+                % Distance from low point to bottom h-plane.
+                dlow = -h2 - z(1);
+                % Distance from high point to upper h-plane.
+                dupp = z(3) - h2;
                 
-                denom0 = 1/(z(2) - z(1));
-                denom1 = 1/(z(3) - z(1));
+                % Point differences.
+                z21 = z(2) - z(1);
+                z31 = z(3) - z(1);
+                z23 = z(3) - z(2);
                 
-                p = zeros(5,2);
+                % Clipped polygon.
+                p = [...
+                    Q1 + dlow/z31*(Q3 - Q1); ...
+                    Q1 + dlow/z21*(Q2 - Q1); ...
+                	Q2; ...
+                	Q3 + dupp/z23*(Q2 - Q3); ...
+                	Q3 + dupp/z31*(Q1 - Q3); ...
+                ];
                 
-                t = n0*denom1;
-                p(1,:) = Q0 + t*(Q2 - Q0);
-                t = n0*denom0;
-                p(2,:) = Q0 + t*(Q1 - Q0);
-                p(3,:) = Q1;
-                t = n1*denom0;
-                p(4,:) = Q0 + t*(Q1 - Q0);
-                t = n1*denom1;
-                p(5,:) = Q0 + t*(Q2 - Q0);
-                
-                intersect = polygon_check(p,r);
+                intersect = polygon_check(p,r,edgehit);
             end
             
         elseif z(3) > -h2
@@ -207,21 +202,21 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
                     disp('Case 3b/3c');
                 end
 
+                % Distance from inner point to lower h-plane.
+                dlow = z(3) + h/2;
                 
-                n0 = -h2 - z(3);
+                % Point z-distances.
+                z32 = z(3) - z(2);
+                z31 = z(3) - z(1);
                 
-                denom0 = 1/(z(2) - z(3));
-                denom1 = 1/(z(1) - z(3));
+                % Clipped triangle.
+                p = [...
+                	Q3 + dlow/z32*(Q2 - Q3); ...
+                	Q3 + dlow/z31*(Q1 - Q3); ...
+                	Q3; ...
+                ];
                 
-                p = zeros(3,2);
-                
-                t = n0*denom0;
-                p(1,:) = Q2 + t*(Q1 - Q2);
-                t = n0*denom1;
-                p(2,:) = Q2 + t*(Q0 - Q2);
-                p(3,:) = Q2;
-                
-                intersect = polygon_check(p,r);
+                intersect = polygon_check(p,r,edgehit);
                 
             % Two points inside, one below.
             else
@@ -229,22 +224,22 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
                     disp('Case 4e');
                 end
 
+                %Distance from outer point to lower h-plane.
+                dlow = -h2 - z(1);
                 
-                n0 = -h2 - z(1);
+                % Point z-distances.
+                z31 = z(3) - z(1);
+                z21 = z(2) - z(1);
                 
-                denom0 = 1/(z(3) - z(1));
-                denom1 = 1/(z(2) - z(1));
+                % Clipped polygon.
+                p = [...
+                	Q1 + dlow/z31*(Q3 - Q1); ...
+                	Q1 + dlow/z21*(Q2 - Q1); ...
+                	Q2; ...
+                	Q3; ...
+                ];
                 
-                p = zeros(4,2);
-                
-                t = n0*denom0;
-                p(1,:) = Q0 + t*(Q2 - Q0);
-                t = n0*denom1;
-                p(2,:) = Q0 + t*(Q1 - Q0);
-                p(3,:) = Q1;
-                p(4,:) = Q2;
-                
-                intersect = polygon_check(p,r);
+                intersect = polygon_check(p,r,edgehit);
             end
         else 
             
@@ -266,10 +261,7 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
                 end
 
                 if edgehit
-                    Q1 = Q(3,1:2);
-                    Q2 = Q(2,1:2);
-                    
-                    intersect = line_segment_check(Q1,Q2,r);
+                    intersect = line_segment_check(Q2,Q3,r,edgehit);
                 end
                 return;
             end
@@ -283,21 +275,21 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
                 disp('Case 3d/3e');
             end
 
-            
-            n0 = -h2 - z(1);
+            % Distance from low point to upper z-plane.
+            dupp = h2 - z(1);
                 
-            denom0 = 1/(z(3) - z(1));
-            denom1 = 1/(z(2) - z(1));
+            % Point z-distances.
+            z31 = z(3) - z(1);
+            z21 = z(2) - z(1);
 
-            p = zeros(3,2);
+            % Clipped triangle.
+            p = [...
+                Q1 + dupp/z31*(Q3 - Q1); ...
+                Q1 + dupp/z21*(Q2 - Q1); ...
+            	Q1; ...
+            ];
 
-            t = n0*denom0;
-            p(1,:) = Q0 + t*(Q2 - Q0);
-            t = n0*denom1;
-            p(2,:) = Q0 + t*(Q1 - Q0);
-            p(3,:) = Q0;
-
-            intersect = polygon_check(p,r);
+            intersect = polygon_check(p,r,edgehit);
             
         % Two points inside, one above.
         else
@@ -305,22 +297,22 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
                 disp('Case 4f');
             end
 
+            % Distance between high point and upper z-plane.
+            dupp = h2 - z(3);
             
-            n0 = -h2 - z(3);
-                
-            denom0 = 1/(z(2) - z(3));
-            denom1 = 1/(z(1) - z(3));
+            % Point z-distances.
+            z23 = z(2) - z(3);
+            z13 = z(1) - z(3);
 
-            p = zeros(4,2);
+            % Clipped polygon.
+            p = [...
+                Q3 + dupp/z23*(Q2 - Q3); ...
+                Q3 + dupp/z13*(Q1 - Q3); ...
+            	Q1; ...
+            	Q2; ...
+            ];
 
-            t = n0*denom0;
-            p(1,:) = Q2 + t*(Q1 - Q2);
-            t = n0*denom1;
-            p(2,:) = Q2 + t*(Q0 - Q2);
-            p(3,:) = Q0;
-            p(4,:) = Q1;
-
-            intersect = polygon_check(p,r);
+            intersect = polygon_check(p,r,edgehit);
         end
     else
         
@@ -342,10 +334,7 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
             end
 
             if edgehit
-                Q1 = Q(2,1:2);
-                Q2 = Q(1,1:2);
-                
-                intersect = line_segment_check(Q1,Q2,r);
+                intersect = line_segment_check(Q2,Q1,r,edgehit);
             end
             return;
         end
@@ -353,9 +342,13 @@ function intersect = cylinder_triangle_intersect(ob,jCyl,tri,edgehit,debug)
     
 end
 
-function intersect = polygon_check(p,r)
+function intersect = polygon_check(p, r, edgehit)
 % Check if polygon with vertices <p> contains the origin or if any polygon
 % edge is closer than <r> to the origin.
+
+    if nargin < 3
+        edgehit = false;
+    end
         
     intersect = false;
 
@@ -367,15 +360,15 @@ function intersect = polygon_check(p,r)
 
         % Check edge distance to origin.
         for iEdge = 1:NEdge
-            Q1 = p(iEdge,:);
+            Q2 = p(iEdge,:);
             if iEdge < NEdge
-                Q2 = p(iEdge+1,:);
+                Q3 = p(iEdge+1,:);
             else
-                Q2 = p(1,:);
+                Q3 = p(1,:);
             end
             
             % Check distance.
-            intersect = line_segment_check(Q1,Q2,r);
+            intersect = line_segment_check(Q2,Q3,r,edgehit);
             
             if intersect
                 return;
@@ -385,14 +378,42 @@ function intersect = polygon_check(p,r)
 
 end
 
-function intersect = line_segment_check(a,b,r)
+function intersect = line_segment_check(a,b,r,edgehit)
 % Check if line segment with end points <a> and <b> is closer than <r> to
-% the origin.
+% the origin, i.e., the line segment intersects the circle.
 
-    if dot(a-b,-b)*dot(b-a,-a) >= 0
-        intersect = abs(det([a 1; b 1; 0 0 1])) / norm(a-b) < r;
+    if nargin < 4
+        edgehit = false;
+    end
+
+    if edgehit
+        comp_oper = @le;
     else
-        intersect = min(norm(a),norm(b)) < r;
+        comp_oper = @lt;
+    end
+
+    % Difference vector between segment end points.
+    ab = a - b;
+    
+    % If dot product less than zero, point norm(b) > norm(a).
+    if dot(a,ab) <= 0
+        intersect = comp_oper(norm(a), r);
+        
+    % If projection of <a> onto <ab> extends length of <ab>, 
+    % then point <b> must be closest point.
+    elseif dot(a,ab) >= dot(ab,ab)
+        intersect = comp_oper(norm(b), r);
+        
+    % Otherwise closest point between end points.
+    else
+        % Vector perpendicular to difference vector <ab>.
+        abt = [-ab(2) ab(1)];
+        
+        % Project <a> onto perpendicular vector.
+        n = dot(abt,a);
+        
+        % Distance to origin, is the length of the projection.
+        intersect = comp_oper(norm(n)/norm(ab), r);
     end
 
 end

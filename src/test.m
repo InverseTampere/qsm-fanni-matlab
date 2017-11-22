@@ -28,18 +28,18 @@ BranchData = [
 ];
 
 TreeData = [
- 1.1192;
- 0.4918;
- 0.6273;
- 2.0000;
- 3.4140;
-10.6560;
- 4.0000;
- 1.0000;
-11.5058;
- 0.0000;
- 0.0000;
- 0.0000;
+ 1.1192; % Total volume of the tree
+ 0.4918; % Volume of the trunk
+ 0.6273; % Total volume of all the branches
+ 2.0000; % Total height of the tree
+ 3.4140; % Length of the trunk
+10.6560; % Total length of all the branches
+ 4.0000; % Total number of branches
+ 1.0000; % Maximum branch order
+11.5058; % Total area of cylinders
+ 0.0000; % DBH = Diameter at breast height, from the QSM
+ 0.0000; % DBH from cylinder fitted to right place
+ 0.0000; % DBH from triangulation
 ];
 
 ModelData = {CylData, BranchData, TreeData};
@@ -60,12 +60,12 @@ tris = [
      1,  3,  4
 ];
 
-Leaves = LeafModelTriangle(vertices, tris, {[1 2 3 4]});
-
 %% Leaf insertion.
 
 % Insert 1 m2 of leaf area. 
-LeafArea = 10;
+LeafArea = [10,20];
+
+Leaves = LeafModelTriangle(vertices, tris, {[1 2 3 4]});
 
 [Leaves, NAccepted] = qsm_fanni(QSMsimple,...
                                 Leaves,...
@@ -77,5 +77,12 @@ LeafArea = 10;
 
 %% Export result.
 
-Leaves.export_obj('test_leaves_export.obj',4);    
+Leaves.export_geometry('OBJ',true,'test_leaves_export.obj',4);    
 QSMsimple.export_blender('test_qsm_export.txt',4);
+
+%% Plot results.
+QSMsimple.plot_cylinders();
+hold on;
+Leaves.plot_leaves();
+hold off;
+axis equal;

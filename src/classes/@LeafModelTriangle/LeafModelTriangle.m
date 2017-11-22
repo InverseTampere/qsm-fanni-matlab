@@ -370,63 +370,35 @@ classdef LeafModelTriangle < LeafModel
 
         
         function varargout = triangles(ob, origin, dir, normal, scale)
-        % Convert leaf parameters to triangle vertices. The return value is
-        % a matrix where each row contains the vertices of a single
-        % triangle. A leaf can consist of a number of leaves.
+        % Function for computing the geometry of a leaf based on the 
+        % transformation parameter inputs. 
 
-            % Base vertices that are modified to get
-            % vertices of given leaf.
-            vert  = ob.base_vertices;
+            [Vertices, Faces] = compute_geometry(ob, false, origin, ...
+                                                 dir, normal, scale);
+            %-
 
-            % Scaling.
-            vert = bsxfun(@times,vert,scale);
-
-            % Coordinate system.
-            E = [cross(normal,dir); dir; normal];
-
-            % Rotation.
-            vert = vert*E;
-
-            % Translation.
-            vert = bsxfun(@plus,vert,origin);
-
-            % Indices of faces in leaf.
-            faces = ob.base_triangles;
-            
             if nargout == 2
-                varargout{1} = vert;
-                varargout{2} = faces;
+                varargout{1} = Vertices;
+                varargout{2} = Faces;
             else
 
-                varargout{1} = cat(2,vert(faces(:,1),:),...
-                                     vert(faces(:,2),:),...
-                                     vert(faces(:,3),:));
+                varargout{1} = cat(2,Vertices(Faces(:,1),:),...
+                                     Vertices(Faces(:,2),:),...
+                                     Vertices(Faces(:,3),:));
                 %-
             end
+
         end
 
         
         function h = plot_leaves(ob, varargin)
         % Plot accepted leaves using the PATCH function.
             
-            % Initialize triangle vertices.
-            tris = zeros(ob.leaf_count*ob.triangle_count,9);
-            
-            % Iterate over leaves.
-            for iLeaf = 1:ob.leaf_count
-                
-                % Start index of current leaf, as a single leaf can consist
-                % from a number of triangles.
-                jCur = (iLeaf-1)*ob.triangle_count + 1;
-                
-                % Compute and store triangles of current leaf.
-                tris(jCur:jCur+ob.triangle_count-1,:) = ob.triangles(...
-                                        ob.leaf_start_point(iLeaf,:),...
-                                        ob.leaf_direction(iLeaf,:),...
-                                        ob.leaf_normal(iLeaf,:),...
-                                        ob.leaf_scale(iLeaf,:));
-                %-
-            end
+            [Vertices, Faces] = compute_geometry(ob, false);
+
+            tris = cat(2,Vertices(Faces(:,1),:),...
+                         Vertices(Faces(:,2),:),...
+                         Vertices(Faces(:,3),:));
             
             % Reshape the triangle data for plotting.
             X = tris(:,[1 4 7])';
@@ -438,168 +410,242 @@ classdef LeafModelTriangle < LeafModel
 
         end
 
-        function export_obj(ob, file, d, OriginOffset, Filter)
-        % Export leaves in Wavefront OBJ-format.
-            
-            % Set default precision.
-            if nargin < 3
-                d = 4;
-            end
+        function [Vertices, Faces] = compute_geometry(ob, fNgon, varargin)
+        % Function to compute exact geometry of leaves by transforming the
+        % basis geometry.
+        %
+        % Possible formats:
+        % [Vert, Faces] = ob.triangles(fNgon)
+        % [Vert, Faces] = ob.triangles(fNgon, Filter)
+        % [Vert, Faces] = ob.triangles(fNgon, origin, dir, normal, scale)
 
-            % Flag for overriding the origin by moving the starting points.
-            fOriginOverride = false;
-            
-            if nargin > 3 && not(isempty(OriginOffset))
-                fOriginOverride = true;
-            end
-            
-            % Number of leaves in model.
-            NLeaf = ob.leaf_count;
+            % If leaf transformation parameters are given as input,
+            % use those single paremeters.
+            if nargin == 6
+                
+                origin = varargin{1};
+                dir    = varargin{2};
+                normal = varargin{3};
+                scale  = varargin{4};
 
-            % Logical vector for filtering only some of the leaves for
-            % export.
-            if nargin <= 4
-                Filter = true(NLeaf,1);
-            end
-
-            % Flag: leaves consist of ngons.
-            fNgon = true;
-
-            if isempty(ob.base_ngons)
-                fNgon = false;
-            end
-
-            % Number of vertices in base.
-            NBaseVert = size(ob.base_vertices,1);
-
-            % Matrix of vertices, row == vertex.
-            Vertices = zeros(nnz(Filter)*NBaseVert,3);
-
-            % Number of exported leaves.
-            jLeaf = 0;
-
-            % Iterate over leaves in model.
-            for iLeaf = 1:NLeaf
-
-                % Check if filtered in.
-                if Filter(iLeaf)
-                    % Increase number of exported leaves.
-                    jLeaf = jLeaf + 1;
-                else
-                    % Ignore filtered leaf.
-                    continue;
-                end
-
-                % Get single leaf parameters and convert to vertices.
-                origin = ob.leaf_start_point(iLeaf,:);
-                scale  = ob.leaf_scale(iLeaf,:);
-                dir    = ob.leaf_direction(iLeaf,:);
-                normal = ob.leaf_normal(iLeaf,:);
-
-                % Compute vertices by transforming leaf base.
+                % Base vertices that are modified to get
+                % vertices of given leaf.
                 vert  = ob.base_vertices;
 
                 % Scaling.
-                vert = bsxfun(@times,vert,scale);
+                Vertices = bsxfun(@times,vert,scale);
 
                 % Coordinate system.
                 E = [cross(normal,dir); dir; normal];
 
                 % Rotation.
-                vert = vert*E;
+                Vertices = Vertices*E;
 
                 % Translation.
-                vert = bsxfun(@plus,vert,origin);
+                Vertices = bsxfun(@plus,Vertices,origin);
 
-                % Store resulting vertices.
-                Vertices((jLeaf-1)*NBaseVert+1:jLeaf*NBaseVert,:) = vert;
+                % Indices of faces in leaf.
+                Faces = ob.base_triangles;
 
-            end
+            % If transformation parameters are not given, 
+            % use all the leaves in the model.
+            else
+            
+                % Number of leaves in model.
+                NLeaf = ob.leaf_count;
 
-            % Number of included leaves.
-            NLeaf = jLeaf;
-
-            % Using ngons
-            if fNgon
-
-                % Flag: equal-sized faces.
-                fEqualNgons = true;
-
-                % Vertical catenation only works if faces have equal number
-                % of vertices.
-                try
-                    BaseNgons = vertcat(ob.base_ngons{:});
-                catch
-                    fEqualNgons = false;
+                % Logical vector for filtering only some of the leaves for
+                % export.
+                if nargin < 3
+                    Filter = true(NLeaf,1);
+                else
+                    Filter = varargin{1};
                 end
 
-                % All ngons have equal number of vertices.
-                if fEqualNgons
+                if isempty(ob.base_ngons)
+                    fNgon = false;
+                end
 
-                    % Number of triangles in base.
-                    NNgon = size(BaseNgons,1);
+                % Number of vertices in base.
+                NBaseVert = size(ob.base_vertices,1);
 
-                    % Indices of base triangle face vertices.
-                    ngons = repmat(BaseNgons,NLeaf,1);
+                % Matrix of vertices, row == vertex.
+                Vertices = zeros(nnz(Filter)*NBaseVert,3);
 
-                    add = repmat(0:1:NLeaf-1,NNgon,1);
-                    add = add(:)*NBaseVert;
+                % Number of exported leaves.
+                jLeaf = 0;
 
-                    Faces = bsxfun(@plus,ngons,add);
+                % Iterate over leaves in model.
+                for iLeaf = 1:NLeaf
 
-                % Ngon vertex count varies.
-                else
+                    % Check if filtered in.
+                    if Filter(iLeaf)
+                        % Increase number of exported leaves.
+                        jLeaf = jLeaf + 1;
+                    else
+                        % Ignore filtered leaf.
+                        continue;
+                    end
 
-                    % Base ngons as cell array.
-                    BaseNgons = ob.base_ngons;
+                    % Get single leaf parameters and convert to vertices.
+                    origin = ob.leaf_start_point(iLeaf,:);
+                    scale  = ob.leaf_scale(iLeaf,:);
+                    dir    = ob.leaf_direction(iLeaf,:);
+                    normal = ob.leaf_normal(iLeaf,:);
 
-                    % Number of ngons in base.
-                    NNgon = numel(BaseNgons);
+                    % Compute vertices by transforming leaf base.
+                    vert  = ob.base_vertices;
 
-                    % Cell to store faces.
-                    Faces = cell(NLeaf*NNgon,1);
+                    % Scaling.
+                    vert = bsxfun(@times,vert,scale);
 
-                    for iLeaf = 1:NLeaf
+                    % Coordinate system.
+                    E = [cross(normal,dir); dir; normal];
 
-                        for iNgon = 1:NNgon
+                    % Rotation.
+                    vert = vert*E;
 
-                            % Offset index by previus leaf count,
-                            % and store to cell array.
-                            Faces{(iLeaf-1)*NNgon+iNgon} = BaseNgons{iNgon} ...
-                                                         + (iLeaf-1)*NNgon;
-                            %-
+                    % Translation.
+                    vert = bsxfun(@plus,vert,origin);
+
+                    % Store resulting vertices.
+                    Vertices((jLeaf-1)*NBaseVert+1:jLeaf*NBaseVert,:) ...
+                        = vert;
+                    %-
+                end
+
+                % Number of included leaves.
+                NLeaf = jLeaf;
+
+                % Using ngons
+                if fNgon
+
+                    % Flag: equal-sized faces.
+                    fEqualNgons = true;
+
+                    % Vertical catenation only works if faces have equal number
+                    % of vertices.
+                    try
+                        BaseNgons = vertcat(ob.base_ngons{:});
+                    catch
+                        fEqualNgons = false;
+                    end
+
+                    % All ngons have equal number of vertices.
+                    if fEqualNgons
+
+                        % Number of triangles in base.
+                        NNgon = size(BaseNgons,1);
+
+                        % Indices of base triangle face vertices.
+                        ngons = repmat(BaseNgons,NLeaf,1);
+
+                        add = repmat(0:1:NLeaf-1,NNgon,1);
+                        add = add(:)*NBaseVert;
+
+                        Faces = bsxfun(@plus,ngons,add);
+
+                    % Ngon vertex count varies.
+                    else
+
+                        % Base ngons as cell array.
+                        BaseNgons = ob.base_ngons;
+
+                        % Number of ngons in base.
+                        NNgon = numel(BaseNgons);
+
+                        % Cell to store faces.
+                        Faces = cell(NLeaf*NNgon,1);
+
+                        for iLeaf = 1:NLeaf
+
+                            for iNgon = 1:NNgon
+
+                                % Offset index by previus leaf count,
+                                % and store to cell array.
+                                Faces{(iLeaf-1)*NNgon+iNgon} = BaseNgons{iNgon} ...
+                                                             + (iLeaf-1)*NNgon;
+                                %-
+
+                            end
 
                         end
 
                     end
 
+                else
+
+                    % Number of triangles in base.
+                    NTri = size(ob.base_triangles,1);
+
+                    % Indices of base triangle face vertices.
+                    tris = repmat(ob.base_triangles,NLeaf,1);
+
+                    % Offset vector to account for previous leaves.
+                    add = repmat(0:1:NLeaf-1,NTri,1);
+                    add = add(:)*NBaseVert;
+
+                    % Store offset face indices to matrix.
+                    Faces = bsxfun(@plus,tris,add);
+
                 end
-
-            else
-
-                % Number of triangles in base.
-                NTri = size(Leaves.base_triangles,1);
-
-                % Indices of base triangle face vertices.
-                tris = repmat(Leaves.base_triangles,NLeaf,1);
-
-                % Offset vector to account for previous leaves.
-                add = repmat(0:1:NLeaf-1,NTri,1);
-                add = add(:)*NBaseVert;
-
-                % Store offset face indices to matrix.
-                Faces = bsxfun(@plus,tris,add);
-
             end
+
+            
+
+        end
+
+        function export_geometry(ob, format, fNgon, file, d, OriginOffset, Filter)
+        % Compute accepted leaf geometry and export to a file. Currently supports
+        % Wavefront OBJ-format.
+        
+            fOriginOverride = true;
+        
+            if nargin < 5
+                d = 3;
+            end
+            
+            if nargin < 6
+                fOriginOverride = false;
+                OriginOffset = [];
+            end
+            
+            if nargin < 7
+                Filter = true(ob.leaf_count,1);
+            end
+
+            [Vertices, Faces] = ob.compute_geometry(fNgon, Filter);
 
             % Override origin if given.
             if fOriginOverride
                 Vertices = bsxfun(@minus,Vertices,OriginOffset);
             end
 
-            % Write resulting vertices and faces to file.
-            LeafModelTriangle.export_vert_face_obj(Vertices,Faces,d,file);
-            
+            switch format
+
+                % Export leaves in Wavefront OBJ-format.
+                case 'OBJ'
+                    
+                    % Set default precision.
+                    if nargin < 3
+                        d = 4;
+                    end
+
+                    
+
+                    % Write resulting vertices and faces to file.
+                    LeafModelTriangle.export_vert_face_obj(Vertices,Faces,d,file);
+
+                otherwise
+                    fprintf('Unknown export format: %s', format);
+            end
+        end
+
+        function export_obj(ob, file, d, OriginOffset, Filter)
+        % Legacy alias for exporting geometry in Wavefront OBJ format.
+        % Instead use EXPORT_GEOMETRY method when possible.
+
+            ob.export_geometry(ob, 'OBJ', true, file, d, OriginOffset, Filter);
         end
 
     end

@@ -25,15 +25,11 @@ function [Leaves, NAccepted, IAccepted, NConfigsTried, NNeighbour] ...
 % =================== Outputs =============================================
 %
 % Leaves              Class LeafModel object that contains the added
-%                     leaves.
-% 
-% Twigs               (N x 6) matrix of twig information. On each row the
-%                     columns 1:3 are the start point of the twig, 4:6 the
-%                     end point of the twig.
+%                     leaves, and corresponding twig start points.
 %
-% N                   Final number of generated leafs.
+% NAccepted           Final number of generated leafs.
 %
-% Parent              Index of parent cylinder of each leaf.
+% 'Others'            The other optional outputs are for debuging.
 %
 % =================== Inputs ==============================================
 %
@@ -42,7 +38,9 @@ function [Leaves, NAccepted, IAccepted, NConfigsTried, NNeighbour] ...
 % Leaves              Object that defines leaf geometry and will store leaf
 %                     parameters after insertion.
 %
-% Area                Target leaf area.
+% Area                Target leaf area. If the variable has two components,
+%                     then Area(1) is the target area, and Area(2) is the
+%                     initial area to be generated.
 %
 % Several other parameters can also be given in name-value pairs
 % as explained below. The names are not case-sensitive.
