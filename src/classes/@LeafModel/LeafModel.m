@@ -40,7 +40,7 @@ classdef LeafModel < handle
         % Index of parent block.
         leaf_parent = zeros(0,1);
         
-        % Start point of twig (on block surface).
+        % Start point of petiole (on block surface).
         twig_start_point = zeros(0,3);
 
 	end

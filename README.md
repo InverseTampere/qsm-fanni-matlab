@@ -10,7 +10,7 @@ Quantitative structure models - Foliage and needles naive insertion algorithm MA
 
 QSM-FaNNI can be used to generate a leaf cover for a quantitative structure model (QSM) of a tree. The shape of the leaves, as well as, their location, orientation and size can be controlled by the user. All leaves have identical basis geometry - currently the geometry can consist of any number of triangular faces - that is then manipulated by scaling, translation and rotation. 
 
-The distribution of leaf material on the QSM is controlled by the leaf area density distribution (LADD), leaf size by the leaf size distribution (LSD) and leaf orientation by the leaf orientation distribution (LOD). Furthermore, the position, orientation and length of the twigs connecting the leaves to the QSM are controlled by additional distributions. All of the mentioned distributions are Matlab functions with a fixed interface (certain inputs and outputs). Default functions are included by the user is encouraged to create their own.
+The distribution of leaf material on the QSM is controlled by the leaf area density distribution (LADD), leaf size by the leaf size distribution (LSD) and leaf orientation by the leaf orientation distribution (LOD). Furthermore, the position, orientation and length of the petioles connecting the leaves to the QSM are controlled by additional distributions. All of the mentioned distributions are Matlab functions with a fixed interface (certain inputs and outputs). Default functions are included by the user is encouraged to create their own.
 
 The program generates candidate leaves that are accepted to the final leaf cover if they do not intersect the with QSM geometry or any accepted leaves. If an intersection occurs the program tries to modify the leaf parameters (location, scale and/or orientation) with any number of user-customizable transformations, before finally discarding the candidate if intersections still persist.
 
@@ -104,7 +104,7 @@ A handle to a function that determines the direction and normal of each leaf. Th
 Inputs:
 1. Parameters of each block (struct).
 2. Parent index of each leaf (block id).
-3. Direction of the twig of each leaf.
+3. Direction of the petiole of each leaf.
 4. Optional extra parameters.
 
 Outputs:
