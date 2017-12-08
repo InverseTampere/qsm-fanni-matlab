@@ -1,5 +1,12 @@
 # Changelog
 
+## 2017-12-08 Version 1.1.1
+
+- Fixed bug where the `draw_cylinders()` method of the `QSMBCylindrical` class did not have access to the `rotation_matrix()` function.
+- Extended the documentation to include a detailed description of the test case defined in *src/test.m* file.
+- Added syntax highlighting in *README.md*.
+- Added accepted leaf geometry computation to the example in *src/test.m* file.
+
 ## 2017-11-22 Version 1.1.0
 
 - Crushed cylinder-triangle intersection detection bugs.
