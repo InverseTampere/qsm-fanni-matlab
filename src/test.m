@@ -17,8 +17,6 @@ CylData = [
 0.100 1.000 -1.000  0.000  2.000 -1.000  0.000  0.000    8    0  4  1   2   0;
 ];
 
-%CylData(:,3:5) = bsxfun(@plus,CylData(:,3:5),[5 4 -10]);
-
 BranchData = [
 % BOrd   BPar   BVol   BLen   BAng   BHei
      0      0 0.4918 3.4140 0.0000 1.3333;
@@ -42,12 +40,15 @@ TreeData = [
  0.0000; % DBH from triangulation
 ];
 
+% Cell array format of tree model data.
 ModelData = {CylData, BranchData, TreeData};
 
+% Initialize QSM object.
 QSMsimple = QSMBCylindrical(ModelData);
 
 %% Define leaf shape.
 
+% Vertices of the leaf basis geometry.
 vertices = [
     -0.3  0.0  0.0;
     -0.3  1.0  0.0;
@@ -55,6 +56,7 @@ vertices = [
      0.3  0.0  0.0
 ];
 
+% Triangles of the leaf basis geometry.
 tris = [
      1,  2,  3;...
      1,  3,  4
@@ -62,11 +64,14 @@ tris = [
 
 %% Leaf insertion.
 
-% Insert 1 m2 of leaf area. 
+% Genereate 20 m2 of leaf candidates,
+% stop if 10 m2 of leaf area is accepted.
 LeafArea = [10,20];
 
+% Initialize the leaf model with the basis geometry.
 Leaves = LeafModelTriangle(vertices, tris, {[1 2 3 4]});
 
+% Generate leaves.
 [Leaves, NAccepted] = qsm_fanni(QSMsimple,...
                                 Leaves,...
                                 LeafArea,...
@@ -75,10 +80,7 @@ Leaves = LeafModelTriangle(vertices, tris, {[1 2 3 4]});
                                 'Verbose',true);
 %-
 
-%% Export result.
-
-Leaves.export_geometry('OBJ',true,'test_leaves_export.obj',4);    
-QSMsimple.export_blender('test_qsm_export.txt',4);
+% Optional steps to follow:
 
 %% Plot results.
 QSMsimple.plot_cylinders();
@@ -86,3 +88,12 @@ hold on;
 Leaves.plot_leaves();
 hold off;
 axis equal;
+
+%% Compute geometry of accepted leaves.
+
+[Vertices, Faces] = Leaves.compute_geometry(false);
+
+%% Export result.
+
+Leaves.export_geometry('OBJ',true,'test_leaves_export.obj',4);    
+QSMsimple.export_blender('test_qsm_export.txt',4);
