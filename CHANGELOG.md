@@ -1,5 +1,10 @@
 # Changelog
 
+## 2018-02-13 Version 1.2.0
+
+- Added second leaf export format: *Extended OBJ*.
+- Added annotations to *test.m*.
+
 ## 2017-12-08 Version 1.1.1
 
 - Fixed bug where the `draw_cylinders()` method of the `QSMBCylindrical` class did not have access to the `rotation_matrix()` function.

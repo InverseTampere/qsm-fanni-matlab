@@ -328,9 +328,11 @@ The resulting matrices have the same format as the input basis geometry variable
 ### Plotting results in Matlab.
 
 ```Matlab
-QSMsimple.plot_cylinders();
+hQSM = QSMsimple.plot_cylinders();
+set(hQSM,'FaceColor',[150,100,50]./255);
 hold on;
-Leaves.plot_leaves();
+hLeaf = Leaves.plot_leaves();
+set(hLeaf,'FaceColor',[120,150,80]./255);
 hold off;
 axis equal;
 ```
@@ -340,8 +342,29 @@ The results are also visualized in Matlab, again by using the provided class met
 ### Exporting results
 
 ```Matlab
-Leaves.export_geometry('OBJ',true,'test_leaves_export.obj',4);    
+% Use ngons when exporting leaves.
+fUseNgon = true;
+
+% Export in OBJ-format with individual leaf vertices and faces.
+Leaves.export_geometry('OBJ',fUseNgon,'test_leaves_export.obj',4);
+
+% Export in custom extended OBJ-format with basis leaf geometry 
+% and individual leaf transformation parameters.
+Leaves.export_geometry('EXT_OBJ',fUseNgon,'test_leaves_export_extended.obj',4);
+
+% Export QSM parameters to a text file.
 QSMsimple.export_blender('test_qsm_export.txt',4);
 ```
 
-Both the leaf and QSM geometry are exported by class methods provided by the respective classes. Exporting the results to text files is not required. However, this is the process which was used to produce the *test_result.png* image shown also in this document. The exported text files were used to import the geometry into [Blender](https://www.blender.org/) for rendering the image, utilizing the [QSM-blender-addons](https://github.com/InverseTampere/qsm-blender-addons).
+Both the leaf and QSM geometry are exported by class methods provided by the respective classes. Exporting the results to text files is not required. However, this is the process which was used to produce the *test_result.png* image shown also in this document. The exported text files were used to import the geometry into [Blender](https://www.blender.org/) for rendering the image, utilizing the [QSM-blender-addons](https://github.com/InverseTampere/qsm-blender-addons). 
+
+As of QSM-FaNNI version 1.2.0, there are tow different export formats for leaf model exportation. With the Wavefront OBJ-format (`'OBJ'`) the geometry of individual leaves, *i.e.* vertices and faces, is exported. With the custom *Extended OBJ*-format (`'EXT_OBJ'`) the leaf basis geometry is exported in standard OBJ-format, but in addition individual leaf transformation parameters are exported as well. The leaf definition lines will have the following parameters:
+1. (0) 'L' (line type definition)
+2. (1-3) Twig start point
+3. (4-6) Leaf start point
+4. (7-9) Leaf direction (start point to leaf tip)
+5. (10-12) Leaf normal
+6. (13-15) Leaf scale
+7. (16-N) Optional parameters, such as leaf color
+
+The benefit of the extended format is to allow growth animation and leaf level coloring when importing leaf data into Blender with the [QSM-blender-addons](https://github.com/InverseTampere/qsm-blender-addons). 

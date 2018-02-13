@@ -70,7 +70,7 @@ classdef LeafModelTriangle < LeafModel
             % Get triangle count.
             ob.triangle_count = size(tris,1);
             
-            % Compute base dimensions from extrame points.
+            % Compute base dimensions from extreme points.
             mi = min(vertices,[],1);
             ma = max(vertices,[],1);
             ob.base_dimensions = ma - mi;
@@ -320,7 +320,7 @@ classdef LeafModelTriangle < LeafModel
 
                         end
 
-                        % Iterate over edges in cardidate triangle.
+                        % Iterate over edges in candidate triangle.
                         for iEdge = 1:3
 
                             % Form origin and direction.
@@ -420,7 +420,7 @@ classdef LeafModelTriangle < LeafModel
         % [Vert, Faces] = ob.triangles(fNgon, origin, dir, normal, scale)
 
             % If leaf transformation parameters are given as input,
-            % use those single paremeters.
+            % use those single parameters.
             if nargin == 6
                 
                 origin = varargin{1};
@@ -561,7 +561,7 @@ classdef LeafModelTriangle < LeafModel
 
                             for iNgon = 1:NNgon
 
-                                % Offset index by previus leaf count,
+                                % Offset index by previous leaf count,
                                 % and store to cell array.
                                 Faces{(iLeaf-1)*NNgon+iNgon} = BaseNgons{iNgon} ...
                                                              + (iLeaf-1)*NNgon;
@@ -595,12 +595,21 @@ classdef LeafModelTriangle < LeafModel
 
         end
 
-        function export_geometry(ob, format, fNgon, file, d, OriginOffset, Filter)
+        function export_geometry(ob, format, fNgon, file, d, OriginOffset, Filter, varargin)
         % Compute accepted leaf geometry and export to a file. Currently supports
         % Wavefront OBJ-format.
-        
-            fOriginOverride = true;
-        
+
+            % Flag if extra parameters are given to print to the file.
+            fExtraCols = false;
+
+            if nargin > 7
+                fExtraCols = true;
+
+                % Number of extra columns.
+                NCol = numel(varargin);
+            end
+
+            % Set default precision.        
             if nargin < 5
                 d = 3;
             end
@@ -610,34 +619,95 @@ classdef LeafModelTriangle < LeafModel
                 OriginOffset = [];
             end
             
-            if nargin < 7
+            if nargin < 7 || isempty(Filter)
                 Filter = true(ob.leaf_count,1);
-            end
-
-            [Vertices, Faces] = ob.compute_geometry(fNgon, Filter);
-
-            % Override origin if given.
-            if fOriginOverride
-                Vertices = bsxfun(@minus,Vertices,OriginOffset);
             end
 
             switch format
 
                 % Export leaves in Wavefront OBJ-format.
                 case 'OBJ'
-                    
-                    % Set default precision.
-                    if nargin < 3
-                        d = 4;
+
+                    % Convert leaf transformation parameters into vertices and
+                    % faces.
+                    [Vertices, Faces] = ob.compute_geometry(fNgon, Filter);
+
+                    % Override origin if given.
+                    if fOriginOverride && not(isempty(OriginOffset))
+                        Vertices = bsxfun(@minus,Vertices,OriginOffset);
                     end
-
                     
-
                     % Write resulting vertices and faces to file.
                     LeafModelTriangle.export_vert_face_obj(Vertices,Faces,d,file);
 
+                case 'EXT_OBJ'
+
+                    % Base vertices.
+                    BaseVertices = ob.base_vertices;
+
+                    % Base vertices either as polygons or triangles.
+                    if fNgon
+                        BaseFaces = ob.base_ngons;
+                    else
+                        BaseFaces = ob.base_triangles;
+                    end
+
+                    % Open file stream.
+                    fid = fopen(file,'w');
+
+                    % Write base geometry to file in OBJ syntax.
+                    LeafModelTriangle.export_vert_face_obj(BaseVertices,BaseFaces,d,fid);
+
+                    % Initialize format strings:
+                    % Single element.
+                    ft = ['%' num2str(d+2) '.' num2str(d) 'f '];
+                    % Three element vector.
+                    fmt = strtrim(repmat(ft,1,3));
+                    ft = strtrim(ft);
+
+                    % Iterate over leaves.
+                    for iLeaf = 1:ob.leaf_count
+
+                        % Skip filtered leaves.
+                        if ~Filter(iLeaf)
+                            continue;
+                        end
+
+                        % Print line type.
+                        fprintf(fid,'L ');
+                        % Print leaf parameters.
+                        fprintf(fid,[fmt ' '],ob.twig_start_point(iLeaf,:));
+                        fprintf(fid,[fmt ' '],ob.leaf_start_point(iLeaf,:));
+                        fprintf(fid,[fmt ' '],ob.leaf_direction(iLeaf,:));
+                        fprintf(fid,[fmt ' '],ob.leaf_normal(iLeaf,:));
+                        fprintf(fid,fmt,ob.leaf_scale(iLeaf,:));
+
+                        % Print extra columns if present.
+                        if fExtraCols
+                            % Add extra space to separate extra columns.
+                            fprintf(fid, ' ');
+
+                            % Print extra columns.
+                            for iCol = 1:NCol
+                                fprintf(fid,ft,varargin{iCol}(iLeaf,:));
+                            end
+                        end
+
+                        % End line.
+                        fprintf(fid, '\n');
+
+                    end
+
+                    % Close file stream.
+                    fclose(fid);
+
+                    % Print number of exported leaf configurations.
+                    disp(['Exported '      num2str(nnz(Filter)) ...
+                          ' leaf transformation parameters.']);
+
+                % Unknown export format identifier.
                 otherwise
-                    fprintf('Unknown export format: %s', format);
+                    fprintf('Unknown export format: "%s"\n', format);
             end
         end
 
@@ -700,7 +770,7 @@ classdef LeafModelTriangle < LeafModel
             % Compute hit distance from line segment origin.
             Dist = dot(vec2,cross2) / proj1;
             
-            % Hit occured if hit distance between limits. Edge hits are
+            % Hit occurred if hit distance between limits. Edge hits are
             % discarded as equal operators are not included.
             fIntersect = Dist > 0 && Dist < DistLim;
             
@@ -719,10 +789,10 @@ classdef LeafModelTriangle < LeafModel
             % Flag to close file and the end.
             closefile = false;
 
-            % Check if filename and not file stream.
+            % Check if file name and not file stream.
             if ischar(file)
 
-                % Open file stream with filename.
+                % Open file stream with file name.
                 fid = fopen(file,'w');
                 % Set file to close at the end.
                 closefile = true;

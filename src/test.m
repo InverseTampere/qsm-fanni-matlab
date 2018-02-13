@@ -83,9 +83,19 @@ Leaves = LeafModelTriangle(vertices, tris, {[1 2 3 4]});
 % Optional steps to follow:
 
 %% Plot results.
-QSMsimple.plot_cylinders();
+
+% Plot QSM.
+hQSM = QSMsimple.plot_cylinders();
+% Set bark color.
+set(hQSM,'FaceColor',[150,100,50]./255);
+
 hold on;
-Leaves.plot_leaves();
+
+% Plot leaves.
+hLeaf = Leaves.plot_leaves();
+% Set leaf color.
+set(hLeaf,'FaceColor',[120,150,80]./255);
+
 hold off;
 axis equal;
 
@@ -95,5 +105,15 @@ axis equal;
 
 %% Export result.
 
-Leaves.export_geometry('OBJ',true,'test_leaves_export.obj',4);    
+% Use ngons when exporting leaves.
+fUseNgon = true;
+
+% Export in OBJ-format with individual leaf vertices and faces.
+Leaves.export_geometry('OBJ',fUseNgon,'test_leaves_export.obj',4);
+
+% Export in custom extended OBJ-format with basis leaf geometry 
+% and individual leaf transformation parameters.
+Leaves.export_geometry('EXT_OBJ',fUseNgon,'test_leaves_export_extended.obj',4);
+
+% Export QSM parameters to a text file.
 QSMsimple.export_blender('test_qsm_export.txt',4);
