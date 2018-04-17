@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/92806841.svg)](https://zenodo.org/badge/latestdoi/92806841)
 
-Quantitative structure models - Foliage and needles naive insertion algorithm MATLAB implementation. Written and tested with Matlab version R2016b.
+Quantitative structure models - Foliage and needles naive insertion algorithm MATLAB implementation. Written and tested with Matlab version R2016b. See some of the customization possibilities in action, together with example results in an [animation](https://www.youtube.com/watch?v=urPDwcEf02A).
 
 ![Test result](https://github.com/InverseTampere/qsm-fanni-matlab/raw/master/src/test_result.png)
 

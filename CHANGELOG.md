@@ -1,5 +1,10 @@
 # Changelog
 
+## 2018-04-17
+
+- Fixed leaf scale bug that caused scaling to be done twice when computing exact leaf geometry.
+- Updated README with a link to a demonstration video.
+
 ## 2018-02-13 Version 1.2.0
 
 - Added second leaf export format: *Extended OBJ*.
