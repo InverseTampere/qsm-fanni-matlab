@@ -70,6 +70,9 @@ classdef LeafModel < handle
 		% given indices <Candidates>.
 		leaf_intersect(ob, origin, dir, normal, scale, Candidates)
 
+        % Compute the minimum and maximum corner of the model.
+        bounding_box(ob)
+
     end
 
 

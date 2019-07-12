@@ -1,20 +1,3 @@
-% This file is part of QSM-FaNNI.
-% 
-% QSM-FaNNI is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% QSM-FaNNI is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with QSM-FaNNI.  If not, see <http://www.gnu.org/licenses/>.
-
-function [Leaves, NAccepted, IAccepted, NConfigsTried, NNeighbour] ...
-                           = qsm_fanni(QSM,Leaves,Area,varargin)
 % Generate random leaves for a given cylinder model. <QSM> contains
 % the structure model, <Leaves> is the leaf model to be used (shape etc.),
 % and <Area> is the total leaf area to be distributed to the QSM.
@@ -134,6 +117,25 @@ function [Leaves, NAccepted, IAccepted, NConfigsTried, NNeighbour] ...
 % 'Verbose'           Boolean that controls printing information on 
 %                     the process status.
 
+
+% This file is part of QSM-FaNNI.
+% 
+% QSM-FaNNI is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% QSM-FaNNI is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with QSM-FaNNI.  If not, see <http://www.gnu.org/licenses/>.
+
+function [Leaves, NAccepted, IAccepted, NConfigsTried, NNeighbour] ...
+                           = qsm_fanni(QSM,Leaves,Area,varargin)
+
 %% Inputs and default values.
 
 % Leaf target and possible over-sampling area.
@@ -143,6 +145,14 @@ if length(Area) == 1
 else
     AreaInsert = Area(2);
     AreaTarget = Area(1);
+end
+
+if AreaInsert < AreaTarget
+    warning( ...
+        'Leaf candidate area (%g) is less than leaf target area (%g).', ...
+        AreaInsert, ...
+        AreaTarget ...
+    );
 end
 
 % Matrix of transform configurations.
@@ -553,7 +563,7 @@ for iLeaf = 1:NLeafCandidate
         %-
         
         % Add leaf to voxelization.
-        LeafVoxelization.add_object_by_cen(cen, LeafIndex);
+        LeafVoxelization.add_object_by_cc(LeafCC, LeafIndex);
         
         % Mark success.
         IAccepted(iLeaf) = true;
@@ -612,6 +622,9 @@ if nargout > 4
 
 end
 
+% Clear possible empty rows.
+Leaves.trim_slack();
+
 end
 
 
@@ -664,7 +677,7 @@ function [LeafDimensions, LeafParent, MaxLeafSize] = ...
                               default_fun_size(BlockAreaTarget,...
                                                BlocksParameters,...
                                                BaseArea,...
-                                               BaseDim,...
+                                               ~,... % BaseDim
                                                varargin)
     %-
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2019-07-12 Version 1.3.0
+
+- Separated QSM-Blocks as a separate repository as it is now shared with various projects.
+	- QSMB, QSMBCylindrical and CubeVoxelization depencies must be downloaded manually and added to the path.
+- Added warning for when leaf candidate area is smaller than the leaf target area in the qsm_fanni function.
+- Moved lisence boilerplate after the main function help text in qsm_fanni.m
+- Set float format from *f* to *g* to exclude trailing zeros when exporting.
+- Simplified *test.m* as QSMBCylindrical can now be initialized with the 'example' for creating the simple QSM tree.
+- Added a `trim_slack()` call at the end of the qsm_fanni function to clear empty rows in object properties.
+- Fixed *leaf_parent* property orientation from row to column vector.
+
 ## 2018-04-17
 
 - Fixed leaf scale bug that caused scaling to be done twice when computing exact leaf geometry.

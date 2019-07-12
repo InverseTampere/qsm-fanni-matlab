@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/92806841.svg)](https://zenodo.org/badge/latestdoi/92806841)
 
-Quantitative structure models - Foliage and needles naive insertion algorithm MATLAB implementation. Written and tested with Matlab version R2016b. See some of the customization possibilities in action, together with example results in an [animation](https://www.youtube.com/watch?v=urPDwcEf02A).
+Quantitative structure models - Foliage and needles naive insertion algorithm MATLAB implementation. Initially written and tested with Matlab version R2016b and later updated and tested with version R2018a. See some of the customization possibilities in action, together with example results in an [animation](https://www.youtube.com/watch?v=urPDwcEf02A).
 
 ![Test result](https://github.com/InverseTampere/qsm-fanni-matlab/raw/master/src/test_result.png)
 
@@ -13,6 +13,16 @@ QSM-FaNNI can be used to generate a leaf cover for a quantitative structure mode
 The distribution of leaf material on the QSM is controlled by the leaf area density distribution (LADD), leaf size by the leaf size distribution (LSD) and leaf orientation by the leaf orientation distribution (LOD). Furthermore, the position, orientation and length of the petioles connecting the leaves to the QSM are controlled by additional distributions. All of the mentioned distributions are Matlab functions with a fixed interface (certain inputs and outputs). Default functions are included by the user is encouraged to create their own.
 
 The program generates candidate leaves that are accepted to the final leaf cover if they do not intersect the with QSM geometry or any accepted leaves. If an intersection occurs the program tries to modify the leaf parameters (location, scale and/or orientation) with any number of user-customizable transformations, before finally discarding the candidate if intersections still persist.
+
+## Dependencies
+
+### QSMB and QSMBCylindrical
+
+Quantitative structure models (QSMs) are expected to be defined as objects of QSMB subclasses, such as QSMBCylindrical. These Matlab classes are part of the [QSM-Blocks](https://github.com/InverseTampere/qsm-blocks-matlab) repository.
+
+### CubeVoxelization
+
+Internally the leaf generation procedure relies on partitioning the space in to voxels. The CubeVoxelization class handles partitioning and related tasks. The CubeVoxelization class is part of the [QSM-Blocks](https://github.com/InverseTampere/qsm-blocks-matlab) repository.
 
 ## Basic usage
 
@@ -137,31 +147,7 @@ Boolean that controls printing information on the process status.
 
 ### QSMB and QSMBCylindrical
 
-The `QSMB` class contains the minimum API any type of QSM must provide. The class is abstract, and thus, for computations the user must initialize an `QSMBCylindrical` object for cylinder-based models, or create their own subclass of `QSMB` for any other type of models. The class constructor has only one input `ModelData` that can have two different formats. The struct-based format is compatible with the current version of the [TreeQSM](https://github.com/InverseTampere/TreeQSM) result, and thus, the documentation of that project can provide further details. Currently, the following, self-explanatory structure fields are utilized during the construction process (array dimensions in parenthesis, with `N` as the cylinder count and `M` as the branch count):
-
-```Matlab
-ModelData.cylinder.start            (N x 3)
-ModelData.cylinder.axis             (N x 3)
-ModelData.cylinder.length           (N x 1)
-ModelData.cylinder.radius           (N x 1)
-ModelData.cylinder.parent           (N x 1)
-ModelData.cylinder.extension        (N x 1)
-ModelData.cylinder.branch           (N x 1)
-ModelData.cylinder.BranchOrder      (N x 1)
-ModelData.cylinder.PositionInBranch (N x 1)
-ModelData.treedata.NumberBranches   (1 x 1)
-ModelData.branch.order              (M x 1)
-ModelData.branch.parent             (M x 1)
-ModelData.branch.volume             (M x 1)
-ModelData.branch.length             (M x 1)
-ModelData.branch.angle              (M x 1)
-ModelData.branch.height             (M x 1)
-```
-
-The format of the constructor is the following:
-```Matlab
-QSM = QSMBCylindrical(ModelData);
-```
+The abstract class QSMB and the class QSMBCylindrical are used to hold geometric and topological quantitative structure model data. As of version 1.3.0 these are part of a separate [QSM-Blocks](https://github.com/InverseTampere/qsm-blocks-matlab) repository, but are required dependencies.
 
 ### LeafModel and LeafModelTriangle
 
@@ -173,7 +159,7 @@ Leaves = LeafModelTriangle(Vert, Faces, Ngons);
 Leaves = LeafModelTriangle(Vert, Faces, Ngons, NInit);
 ```
 
-where `Vert` is a Nx3 matrix with the vertices as rows, `Faces` is a Mx3 matrix with vertex indices of a single triangle on each row. The optional argument `Ngons` is a cell array, there each element contains a vector of vertex indices forming *n*-sided polygons, used for optimization, e.g., when exporting the leaf model. `NInit` is a scalar number that can be used to initialize the objects internal matrices to optimize leaf insertion. After leaf insertion has been completed, the extra rows can be removed with the `trim_slack()` method:
+where `Vert` is a Nx3 matrix with the vertices as rows, `Faces` is a Mx3 matrix with vertex indices of a single triangle on each row. The optional argument `Ngons` is a cell array, there each element contains a vector of vertex indices forming *n*-sided polygons, used for optimization, e.g., when exporting the leaf model. `NInit` is a scalar number that can be used to initialize the objects internal matrices to optimize leaf insertion. After leaf insertion has been completed, the extra rows can be removed with the `trim_slack()` method (that is called by `qsm_fanni` when leaf insertion ends):
 
 ```Matlab
 Leaves.trim_slack();
@@ -205,55 +191,15 @@ The *src* folder contains a simple test file, *test.m* for trying the leaf inser
 addpath('classes/');
 ```
 
-The command includes the required class definitions into Matlab's path. Those classes include the four classes described above, as well as, a helper class `CubeVoxelization` that is used internally by the main program to describe objects, such as triangles or cylinders, in three-dimensional voxelized spaces.
+The command includes the required class definitions into Matlab's path. These classes include `LeafModel` and `LeafModelTriangle`. As of QSM-FaNNI version 1.3.0 you have to manually also add the path of the class definitions in [QSM-Blocks](https://github.com/InverseTampere/qsm-blocks-matlab).
+
+In total the dependencies include the four classes described above, as well as, a helper class `CubeVoxelization` that is used internally by the main program to describe objects, such as triangles or cylinders, in three-dimensional voxelized spaces.
 
 ```Matlab
-CylData = [
-% Rad   Len                  Sta                  Axe CPar CExt BI BO IIB Add
-0.300 1.000  0.000  0.000  0.000  0.000  0.000  1.000    0    1  1  0   1   0;
-0.200 1.414  0.000  0.000  1.000  0.707  0.000  0.707    1    2  1  0   2   0;
-0.100 1.000  1.000  0.000  2.000  1.000  0.000  0.000    2    0  1  1   3   0;
-0.200 1.414  0.000  0.000  1.000  0.000  0.707  0.707    1    4  2  1   1   0;
-0.100 1.000  0.000  1.000  2.000  0.000  1.000  0.000    4    0  2  1   2   0;
-0.200 1.414  0.000  0.000  1.000  0.000 -0.707  0.707    1    6  3  1   1   0;
-0.100 1.000  0.000 -1.000  2.000  0.000 -1.000  0.000    6    0  3  1   2   0;
-0.200 1.414  0.000  0.000  1.000 -0.707  0.000  0.707    1    8  4  1   1   0;
-0.100 1.000 -1.000  0.000  2.000 -1.000  0.000  0.000    8    0  4  1   2   0;
-];
-
-BranchData = [
-% BOrd   BPar   BVol   BLen   BAng   BHei
-     0      0 0.4918 3.4140 0.0000 1.3333;
-     1      1 0.2091 2.4140 0.7854 1.7499;
-     1      1 0.2091 2.4140 0.7854 1.7499;
-     1      1 0.2091 2.4140 0.7854 1.7499;
-];
-
-TreeData = [
- 1.1192; % Total volume of the tree
- 0.4918; % Volume of the trunk
- 0.6273; % Total volume of all the branches
- 2.0000; % Total height of the tree
- 3.4140; % Length of the trunk
-10.6560; % Total length of all the branches
- 4.0000; % Total number of branches
- 1.0000; % Maximum branch order
-11.5058; % Total area of cylinders
- 0.0000; % DBH = Diameter at breast height, from the QSM
- 0.0000; % DBH from cylinder fitted to right place
- 0.0000; % DBH from triangulation
-];
-
-ModelData = {CylData, BranchData, TreeData};
+QSMsimple = QSMBCylindrical('example');
 ```
 
-Properties of the cylinders, branches and the complete *tree*, to be contained in the example QSM. The data are defined in three separate matrices in the test file. However, the user may also use the struct-based variable format described above, in the *QSMB and QSMBCylindrical* subsection.
-
-```Matlab
-QSMsimple = QSMBCylindrical(ModelData);
-```
-
-The class constructor initializes an object of the respective `QSMBCylindrical` class with the data included in the `ModelData` variable. The benefit of using an object, rather than the cell array or a struct, is that a class object also has methods and not just properties. Those methods are utilized inside the leaf insertion function, but also later in the *test.m* file, in the form of the `QSMBCylindrical.export_blender()` method.
+The class constructor initializes an object of the respective `QSMBCylindrical` class with example data. For additional means for initializing a QSMBCylindrical object, see the QSM-Blocks *README.md*. The benefit of using an object, rather than the cell array or a struct, is that a class object also has methods and not just properties. Those methods are utilized inside the leaf insertion function, but also later in the *test.m* file, in the form of the `QSMBCylindrical.export_blender()` method.
 
 ```Matlab
 vertices = [
@@ -272,10 +218,10 @@ tris = [
 These two matrices define the basis geometry of the leaf model. Each row of the `vertices` matrix contains the *x*, *y* and *z* coordinates of a single vertex. Each row of the `tris` matrix contains three indices referencing the rows of the `vertices` matrix, *i.e.*, the three vertices of the respective triangle. Notice that the same vertices can be referenced multiple times if necessary. In this example case there are four vertices and two triangles, as the geometry consists of a rectangle which is 1.0 units tall (*y*-direction) and 0.6 units wide (*x*-direction).
 
 ```Matlab
-LeafArea = [10,20];
+LeafArea = [10,50];
 ```
 
-The two-element vector defines the target leaf area in the first element, and the area of leaf candidates to generate initially in the second element. In this example 20 m<sup>2</sup> of leaf area is generated initially in the form of leaf candidates. Those candidates are accepted one-by-one if they do not intersect with other geometry. When 10 m<sup>2</sup> of leaves are accepted, the process stops. It is also possible that the process is unable to reach the desired leaf area with the generated candidates, thus resulting in a lower final leaf area. If this is the case, there are two main ways to remedy the outcome: 1) increase the candidate leaf area, *i.e.*, the second element of the vector, or 2) increase/modify the transformations performed on leaf candidates when intersections occur, *i.e*, the `'TransformConfig'` parameter of the `qsm_fanni()` function. Note that both solutions are likely to increase the computational time.
+The two-element vector defines the target leaf area in the first element, and the area of leaf candidates to generate initially in the second element. In this example 50 m<sup>2</sup> of leaf area is generated initially in the form of leaf candidates. Those candidates are accepted one-by-one if they do not intersect with other geometry. When 10 m<sup>2</sup> of leaves are accepted, the process stops. It is also possible that the process is unable to reach the desired leaf area with the generated candidates, thus resulting in a lower final leaf area. If this is the case, there are two main ways to remedy the outcome: 1) increase the candidate leaf area, *i.e.*, the second element of the vector, or 2) increase/modify the transformations performed on leaf candidates when intersections occur, *i.e*, the `'TransformConfig'` parameter of the `qsm_fanni()` function. Note that both solutions are likely to increase the computational time.
 
 ```Matlab
 Leaves = LeafModelTriangle(vertices, tris, {[1 2 3 4]});
@@ -284,12 +230,14 @@ Leaves = LeafModelTriangle(vertices, tris, {[1 2 3 4]});
 The variable is initialized as a `LeafModelTriangle` object by the class constructor. The basis geometry defined above is given as the two first inputs. The third, optional input is a cell array that tell the object that the basis geometry can also be described as a single rectangle (*n*-sided polygon), rather than two triangles. This information is not required, but it can be used for optimization, *e.g.*, when exporting resulting leaf covers. The parameter is a cell array, where each cell is a vector of indices of the `vertices` matrix, defining the *n* vertices of the respective polygon.
 
 ```Matlab
-[Leaves, NAccepted] = qsm_fanni(QSMsimple,...
-                                Leaves,...
-                                LeafArea,...
-                                'Seed',1,...
-                                'SizeFunctionParameters', {[0.25 0.30]},...
-                                'Verbose',true);
+[Leaves, NAccepted] = qsm_fanni( ...
+    QSMsimple,...
+    Leaves,...
+    LeafArea,...
+    'Seed',1,...
+    'SizeFunctionParameters', {[0.25 0.30]},...
+    'Verbose',true ...
+);
 ```
 
 The main function is run with the variables initialized above (the first three inputs). Note that the second input is the same as the first output, which means that the `Leaves` variable is updated to include the resulting leaf cover parameters. The last three lines of input parameters are optional. As there are random processes in the procedure, fixing the `'Seed'` parameter allows the result of the test run to always be the same. The `'SizeFunctionParameters'` option is used to pass the two-element vector, `[0.25 0.30]`, as an optional argument to the default leaf size distribution function. The argument instructs the function to sample leaf length uniformly inside that interval. Setting the `'Verbose'` option to `true` enables the function to print leaf insertion details during the process. By default verbose printing is off, and the function should not output anything in the console.
@@ -307,14 +255,14 @@ Leaves =
            base_area: 0.6000
           base_ngons: {[1 2 3 4]}
       triangle_count: 2
-          leaf_count: 210
-           leaf_area: 10.0164
-    leaf_start_point: [210×3 double]
-          leaf_scale: [210×3 double]
-      leaf_direction: [210×3 double]
-         leaf_normal: [210×3 double]
-         leaf_parent: [1×210 double]
-    twig_start_point: [210×3 double]
+          leaf_count: 209
+           leaf_area: 10.0173
+    leaf_start_point: [209×3 double]
+          leaf_scale: [209×3 double]
+      leaf_direction: [209×3 double]
+         leaf_normal: [209×3 double]
+         leaf_parent: [209×1 double]
+    twig_start_point: [209×3 double]
 ```
 
 The object has 210 accepted leaves as stated by the `leaf_count` property, that cumulate to a total leaf area of about 10.02 m<sup>2</sup>. As mentioned above, the object does not store the exact geometry of the individual leaves, but rather the transformation parameters that when applied to the basis geometry, give the exact geometry. The user can compute the exact triangle faces and vertices with the `compute_geometry()` method of the `LeafModelTriangle` class: 
@@ -329,7 +277,7 @@ The resulting matrices have the same format as the input basis geometry variable
 
 ```Matlab
 hQSM = QSMsimple.plot_cylinders();
-set(hQSM,'FaceColor',[150,100,50]./255);
+set(hQSM,'FaceColor',[150,100,50]./255,'EdgeColor',[0 0 0]);
 hold on;
 hLeaf = Leaves.plot_leaves();
 set(hLeaf,'FaceColor',[120,150,80]./255);
@@ -346,14 +294,28 @@ The results are also visualized in Matlab, again by using the provided class met
 fUseNgon = true;
 
 % Export in OBJ-format with individual leaf vertices and faces.
-Leaves.export_geometry('OBJ',fUseNgon,'test_leaves_export.obj',4);
+Leaves.export_geometry( ...
+    'OBJ', ...
+    fUseNgon, ...
+    'test_leaves_export.obj', ...
+    4 ...
+);
 
 % Export in custom extended OBJ-format with basis leaf geometry 
 % and individual leaf transformation parameters.
-Leaves.export_geometry('EXT_OBJ',fUseNgon,'test_leaves_export_extended.obj',4);
+Leaves.export_geometry( ...
+    'EXT_OBJ', ...
+    fUseNgon, ...
+    'test_leaves_export_extended.obj', ...
+    4 ...
+);
 
 % Export QSM parameters to a text file.
-QSMsimple.export_blender('test_qsm_export.txt',4);
+QSMsimple.export( ...
+    'blender', ...
+    'test_qsm_export.txt', ...
+    'Precision',4 ...
+);
 ```
 
 Both the leaf and QSM geometry are exported by class methods provided by the respective classes. Exporting the results to text files is not required. However, this is the process which was used to produce the *test_result.png* image shown also in this document. The exported text files were used to import the geometry into [Blender](https://www.blender.org/) for rendering the image, utilizing the [QSM-blender-addons](https://github.com/InverseTampere/qsm-blender-addons). 

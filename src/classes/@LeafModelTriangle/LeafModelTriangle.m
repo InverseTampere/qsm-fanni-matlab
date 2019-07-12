@@ -115,6 +115,21 @@ classdef LeafModelTriangle < LeafModel
             end
 
         end
+
+        function bounding_box(ob)
+
+            MaxLeafSize = max(ob.leaf_scale(:));
+
+            % Extreme points.
+            Sp_pr = bsxfun(@plus,ob.leaf_start_point, MaxLeafSize);
+            Sp_mr = bsxfun(@plus,ob.leaf_start_point,-MaxLeafSize);
+            
+            % Upper and lower limits for the tree in the z-axis.
+            ob.tree_limits = [min([Sp_pr; Sp_mr],[],1); ...
+                              max([Sp_pr; Sp_mr],[],1)];
+            %-
+
+        end
         
         function trim_slack(ob)
         % As the main matrices can be initialized with empty rows, this
@@ -185,7 +200,7 @@ classdef LeafModelTriangle < LeafModel
             ob.leaf_normal(index,:)  = normal;
             ob.leaf_scale(index,:) = scale;
             
-            ob.leaf_parent(index) = parent;
+            ob.leaf_parent(index,:) = parent;
             ob.twig_start_point(index,:) = twig;
             
             % Leaf area of new leaf is received by
@@ -623,10 +638,10 @@ classdef LeafModelTriangle < LeafModel
                 Filter = true(ob.leaf_count,1);
             end
 
-            switch format
+            switch lower(format)
 
                 % Export leaves in Wavefront OBJ-format.
-                case 'OBJ'
+                case 'obj'
 
                     % Convert leaf transformation parameters into vertices and
                     % faces.
@@ -640,7 +655,7 @@ classdef LeafModelTriangle < LeafModel
                     % Write resulting vertices and faces to file.
                     LeafModelTriangle.export_vert_face_obj(Vertices,Faces,d,file);
 
-                case 'EXT_OBJ'
+                case {'ext_obj', 'extobj'}
 
                     % Base vertices.
                     BaseVertices = ob.base_vertices;
@@ -660,7 +675,7 @@ classdef LeafModelTriangle < LeafModel
 
                     % Initialize format strings:
                     % Single element.
-                    ft = ['%' num2str(d+2) '.' num2str(d) 'f '];
+                    ft = ['%' num2str(d+2) '.' num2str(d) 'g '];
                     % Three element vector.
                     fmt = strtrim(repmat(ft,1,3));
                     ft = strtrim(ft);
@@ -781,9 +796,9 @@ classdef LeafModelTriangle < LeafModel
             
             % Set precision formatter.
             if length(d) > 1
-                ft = ['%' num2str(d(2)) '.' num2str(d(1)) 'f'];
+                ft = ['%' num2str(d(2)) '.' num2str(d(1)) 'g'];
             else
-                ft = ['%.' num2str(d(1)) 'f'];
+                ft = ['%.' num2str(d(1)) 'g'];
             end
 
             % Flag to close file and the end.
