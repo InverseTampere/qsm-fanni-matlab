@@ -405,8 +405,17 @@ JTransform = 1:NTransform;
 fTargetReached = false;
 
 % Start adding leaves to the leaf model one-by-one.
+timerVal = tic;
 for iLeaf = 1:NLeafCandidate
-    
+    elapsedTime = toc(timerVal);
+    progress = round(AreaAccepted/AreaTarget*100,1);
+    if iLeaf == 1
+        f = waitbar(0,'Starting leaf insertion');
+    else 
+        waitbar(progress/100,f,sprintf(['Leaf insertion %3.1f%% done,' ...
+        ' elapsed time: %3.1f min\nTime remaining estimate: %3.1f min'], ...
+        [progress,elapsedTime/60,100/progress*elapsedTime/60-elapsedTime/60]))
+    end         
     % If target area reached stop adding leaves.
     if AreaAccepted >= AreaTarget
         fTargetReached = true;
